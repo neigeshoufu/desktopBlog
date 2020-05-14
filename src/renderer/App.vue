@@ -13,6 +13,16 @@
        <el-tooltip effect="light" content="在浏览器打开" placement="bottom-start">
          <i class="el-icon-share" @click="open"></i>
        </el-tooltip>
+       <el-dropdown placement="bottom-start" @command="checkUpdate">
+        <span class="el-dropdown-link">
+          菜单<i class="el-icon-arrow-down el-icon--right"></i>
+        </span>
+        <el-dropdown-menu slot="dropdown">
+          <el-dropdown-item icon="el-icon-upload" command="checkUpdate">检查更新</el-dropdown-item>
+          <el-dropdown-item icon="el-icon-s-promotion
+" command="share">生成二维码</el-dropdown-item>
+        </el-dropdown-menu>
+      </el-dropdown>
      </div>
       <div class="control">
         <i class="el-icon-minus" @click="window_min"></i>
@@ -33,6 +43,32 @@
         </div>
       </div>
     </el-drawer>
+    <el-dialog
+      title="更新说明"
+      :visible.sync="verionBox"
+      width="45%"
+      >
+      <span class="version">【version 2.0.1】</span>
+      <span class="version">1.优化本地存储</span>
+      <span class="version">2.增加了菜单选项</span>
+      <span class="version">3.增加了自动更新（有待修复）</span>
+      <span class="version">4.增加了扫码移动端阅读（在菜单里）</span>
+      <span class="version">5."新增条目"改为弹框形式</span>
+      <span class="version">【卸载】</span>
+      <span class="version">右键桌面图标选择"打开文件位置",找到"uninstall"即可</span>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="changeVersionBox">知道了</el-button>
+      </span>
+    </el-dialog>
+    <el-dialog
+      title="移动端浏览"
+      :visible.sync="shareBox"
+      width="25%"
+      >
+      <div class="imgBox">
+        <img :src="imgSrc" alt="图裂了" style="width: 100%;">
+      </div>
+    </el-dialog>
     <router-view></router-view>
   </div>
 </template>
@@ -43,11 +79,13 @@ const ipcRenderer = require('electron').ipcRenderer
 import {mapState} from 'vuex'
 import { shell } from 'electron'
 
+
   export default {
     name: 'replay',
     data() {
       return {
-        
+       shareBox: false,
+       imgSrc: ''
       }
     },
     methods: {
@@ -62,6 +100,7 @@ import { shell } from 'electron'
       },
       goToHome() {
         this.$router.push('/')
+        console.log()
       },
       popDrawer(flag) {
         this.$store.commit('drawerControl', flag)
@@ -90,13 +129,59 @@ import { shell } from 'electron'
       open() {
         this.$electron.shell.openExternal(this.webviewAdd)
       },
-      
+      checkUpdate(command) {
+       if (command === 'checkUpdate') {
+         this.$confirm('更新功能存在错误等待修复，强制更新可能出现bug，是否继续？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          ipcRenderer.send('upDate')
+        }).catch(() => {})
+       } else if (command === 'share') {
+         this.share()
+       }
+    
+      },
+      changeVersionBox() {
+        this.$store.commit('changeVersionBoxState', false)
+      },
+      share() {
+        //调二维码apu
+        this.imgSrc = '' + this.webviewAdd
+        this.shareBox = true
+      }
     },
-    created() {
-      
+    mounted() {
+      ipcRenderer.on('message',(event,{message,data}) => {
+          if (message === 'isUpdateNow') {
+            this.$confirm('是否更新?', '提示', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {
+              ipcRenderer.send('updateNow')
+            }).catch(() => {})
+          } else if (message === 'update-not-available') {
+            this.$message({
+              type: 'warning',
+              message: '未发现新版'
+            })
+           } else if (message === 'error'){
+              this.$message({
+               type: 'error',
+               message: `出现严重错误,${JSON.stringify(data)}`
+             })
+         } //else {
+        //    this.$message({
+        //        type: 'error',
+        //        message: `出现严重错误,${JSON.stringify(data)}`
+        //      })
+        //  }
+        })
     },
     computed: {
-      ...mapState(['list', 'drawer', 'webviewAdd'])
+      ...mapState(['list', 'drawer', 'webviewAdd', 'verionBox'])
     },
   }
 </script>
@@ -183,6 +268,20 @@ border-radius: 99px; /*滚动条的圆角*/
 }
 .el-icon-delete:hover {
   border: 1px #2ecc71 solid;
+}
+
+.el-dropdown {
+   -webkit-app-region: no-drag;
+   cursor: pointer;
+}
+
+.version {
+  display: block;
+}
+
+.imgBox {
+  width: 75%;
+  margin: 0 auto;
 }
 
 </style>

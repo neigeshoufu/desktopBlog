@@ -1,5 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu} from 'electron'
+//const autoUpdater = require('electron-updater').autoUpdater
+import { autoUpdater } from 'electron-updater'
 
+const feedUrl = 'http://cloud.wydxsdac.top:8088/download/latest/'
 /**
  * Set `__static` path to static files in production
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html
@@ -8,7 +11,7 @@ if (process.env.NODE_ENV !== 'development') {
   global.__static = require('path').join(__dirname, '/static').replace(/\\/g, '\\\\')
 }
 
-let mainWindow
+let mainWindow, webContents
 const winURL = process.env.NODE_ENV === 'development'
   ? `http://localhost:9080`
   : `file://${__dirname}/index.html`
@@ -32,19 +35,21 @@ function createWindow () {
 
   mainWindow.loadURL(winURL)
 
+  webContents = mainWindow.webContents
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
 
- // mainWindow.webContents.openDevTools()
+  //mainWindow.webContents.openDevTools()
 }
 //子窗口
 let miniWindow
 function createMiniWindow() {
   Menu.setApplicationMenu(null)  //关闭子窗口菜单栏
   const modalPath = process.env.NODE_ENV === 'development'
-    ? `http://localhost:9080/#/miniWindow`
-    : `file://${__dirname}/index.html#miniWindow`
+    ? `http://localhost:9080/#/add`
+    : `file://${__dirname}/index.html#add`
   //使用hash跳转子页面
   miniWindow = new BrowserWindow({
     width: 300,
@@ -56,6 +61,8 @@ function createMiniWindow() {
   })
 
   miniWindow.loadURL(modalPath)
+
+  
 
   miniWindow.on('closed', () => miniWindow = null)
 }
@@ -83,8 +90,15 @@ ipcMain.on('info-box', () => {
     type: 'info',
     title: '关于',
     message: 'Desktop Blog',
-    detail: 'version:1.2.1 Beta\nAuthor: Daniel Zhang\nPowered by Chromium'
+    detail: 'version:2.1.3 \nAuthor: Daniel Zhang\nPowered by Chromium'
   })
+})
+
+//监听自动更新
+ipcMain.on('upDate', (e, arg) => {
+  console.log('update')
+  checkForUpdates()
+ 
 })
 
 
@@ -116,8 +130,54 @@ import { autoUpdater } from 'electron-updater'
 autoUpdater.on('update-downloaded', () => {
   autoUpdater.quitAndInstall()
 })
-
-app.on('ready', () => {
-  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates()
-})
  */
+
+
+let checkForUpdates = () => {
+  //服务武器地址
+  autoUpdater.setFeedURL(feedUrl)
+
+  //自动更新生命周期
+  autoUpdater.on('error', function(message) {
+    sendUpdateMessage('error', message)
+  })
+
+  autoUpdater.on('checking-for-update', function(message) {
+    sendUpdateMessage('checking-for-update', message)
+  })
+
+  autoUpdater.on('update-available', function(message) {
+    sendUpdateMessage('update-available', message)
+  })
+
+  autoUpdater.on('update-not-available', function(message) {
+    sendUpdateMessage('update-not-available', message)
+  })
+// 更新下载进度事件
+  autoUpdater.on('download-progress', function(progressObj) {
+    sendUpdateMessage('downloadProgress', progressObj)
+  })
+
+  // 更新下载完成事件
+  autoUpdater.on('update-downloaded', function(event, releaseNotes, releaseName, releaseDate, updateUrl, quitAndUpdate) {
+    sendUpdateMessage('isUpdateNow',releaseName)
+    ipcMain.on('updateNow', (e, arg) => {
+        autoUpdater.quitAndInstall()
+    })
+  })
+  //执行自动更新检查
+  autoUpdater.checkForUpdates()
+
+}
+
+function sendUpdateMessage(message, data) {
+  console.log({ message, data })
+  webContents.send('message', { message, data })
+}
+
+// app.on('ready', () => {
+//   if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates()
+// })
+
+
+

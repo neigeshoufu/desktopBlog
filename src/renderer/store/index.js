@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-import axios from 'axios'
+//import axios from 'axios'
 
 
 
@@ -18,7 +18,8 @@ export default new Vuex.Store({
     {"name": "Daniel'blog", "address": "https://neigeshoufu.github.io/mydoc/#/"}
    ],
    drawer: false,
-   webviewAdd: ''
+   webviewAdd: '',
+   verionBox: true
   },
   mutations: {
     updateList(state, val) {
@@ -34,6 +35,10 @@ export default new Vuex.Store({
     },
     deleteList(state, index) {
       state.list.splice(index, 1)
+    },
+    changeVersionBoxState(state, flag) {
+      state.verionBox = flag
+      
     }
   },
   actions: { //异步操作

@@ -10,6 +10,7 @@
 </template>
 
 <script>
+import {mapState} from 'vuex'
 export default {
     data() {
         return {
@@ -32,8 +33,19 @@ export default {
             message: '新增成功',
             type: 'success'
           })
+
+          console.log(this.list)
         }
     },
+    created() {
+     // this.$store.commit('changeTitlebarState', 1)
+    },
+    mounted() {
+      
+    },
+    computed:{
+      ...mapState(['list'])
+    }
 }
 </script>
 
